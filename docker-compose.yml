@@ -1,0 +1,54 @@
+version: '3.3'
+services:
+  collect.mongo:  
+    container_name: collect.mongo
+    image: mongo:latest
+    restart: on-failure
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+    networks: 
+      dehia:
+      backend:
+        aliases:
+          - collect.mongo
+
+  collect.php:
+    container_name: collect.php
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    restart: on-failure
+    user: ${LOCAL_USER}
+    expose: 
+      - 9000
+    networks: 
+      dehia:
+      backend:
+        aliases:
+          - collect.php
+
+  collect.nginx:
+    container_name: collect.nginx
+    image: nginx:1.15.3-alpine
+    restart: on-failure
+    depends_on:
+      - collect.php
+    networks:
+      backend:
+      dehia:
+        aliases:
+          - collect.nginx
+
+  collect.adminer:
+    container_name: collect.adminer
+    image: adminer
+    restart: on-failure
+    networks: 
+      - backend
+
+networks:
+  dehia:
+    external: true
+  backend:
+    external: false
