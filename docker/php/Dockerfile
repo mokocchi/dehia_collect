@@ -1,11 +1,12 @@
 FROM php:7.4-fpm
 
 RUN pecl install apcu 
-RUN pecl install mongodb
 
 RUN apt-get update && \
 apt-get install -y \
-libzip-dev unzip
+libzip-dev unzip libcurl4-openssl-dev pkg-config libssl-dev
+
+RUN pecl install mongodb
 
 RUN docker-php-ext-install zip
 RUN docker-php-ext-enable apcu

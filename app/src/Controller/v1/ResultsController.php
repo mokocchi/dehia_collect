@@ -4,6 +4,8 @@ namespace App\Controller\v1;
 
 use App\Api\ApiProblem;
 use App\Api\ApiProblemException;
+use App\Document\Entry;
+use Doctrine\ODM\MongoDB\DocumentManager;
 use Exception;
 use FOS\RestBundle\Controller\AbstractFOSRestController;
 use Symfony\Component\HttpFoundation\Request;
@@ -21,11 +23,13 @@ class ResultsController extends AbstractFOSRestController
 {
     private $logger;
     private $serializer;
+    private $dm;
 
-    public function __construct(LoggerInterface $logger, SerializerInterface $serializer)
+    public function __construct(LoggerInterface $logger, SerializerInterface $serializer, DocumentManager $dm)
     {
         $this->logger = $logger;
         $this->serializer = $serializer;
+        $this->dm = $dm;
     }
 
     private function getJsonData(Request $request)
@@ -110,14 +114,22 @@ class ResultsController extends AbstractFOSRestController
 
         $columns = $this->getActivityColumns($code);
 
-        $entry = [];
+        $entry = new Entry();
+        $entry->setCode($code);
+        
         foreach ($responses as $response) {
             $this->checkRequiredParameters(["code", "response"], $response);
             $taskCode = $response["code"];
             if (array_search($taskCode, $columns) !== false) {
-                $entry[$taskCode] = $response["response"];
+                $resp = [ $taskCode => $response["response"]];
+                $entry->addResponse($resp);
             }
-        }
+        }        
+        
+        
+        $this->dm->persist($entry);
+        $this->dm->flush();
+
         return $this->handleView($this->view(["data" => $entry]));
     }
 }
