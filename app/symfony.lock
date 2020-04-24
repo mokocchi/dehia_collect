@@ -11,6 +11,15 @@
             "config/routes/annotations.yaml"
         ]
     },
+    "doctrine/cache": {
+        "version": "1.10.0"
+    },
+    "doctrine/collections": {
+        "version": "1.6.4"
+    },
+    "doctrine/event-manager": {
+        "version": "1.1.0"
+    },
     "doctrine/inflector": {
         "version": "1.3.1"
     },
@@ -19,6 +28,29 @@
     },
     "doctrine/lexer": {
         "version": "1.2.0"
+    },
+    "doctrine/mongodb-odm": {
+        "version": "2.0.5"
+    },
+    "doctrine/mongodb-odm-bundle": {
+        "version": "3.3",
+        "recipe": {
+            "repo": "github.com/symfony/recipes-contrib",
+            "branch": "master",
+            "version": "3.3",
+            "ref": "1fd8598bf42227a1c8905edd32f640e4c5d15eff"
+        },
+        "files": [
+            "config/packages/doctrine_mongodb.yaml",
+            "config/packages/prod/doctrine_mongodb.yaml",
+            "src/Document/.gitignore"
+        ]
+    },
+    "doctrine/persistence": {
+        "version": "1.3.7"
+    },
+    "doctrine/reflection": {
+        "version": "1.2.1"
     },
     "friendsofsymfony/rest-bundle": {
         "version": "2.2",
@@ -100,8 +132,26 @@
             "config/packages/prod/jms_serializer.yaml"
         ]
     },
+    "laminas/laminas-code": {
+        "version": "3.4.1"
+    },
+    "laminas/laminas-eventmanager": {
+        "version": "3.2.1"
+    },
+    "laminas/laminas-zendframework-bridge": {
+        "version": "1.0.3"
+    },
+    "mongodb/mongodb": {
+        "version": "1.6.0"
+    },
     "monolog/monolog": {
         "version": "1.25.3"
+    },
+    "ocramius/package-versions": {
+        "version": "1.8.0"
+    },
+    "ocramius/proxy-manager": {
+        "version": "2.8.0"
     },
     "php": {
         "version": "7.4"
@@ -147,6 +197,9 @@
         "version": "v4.4.7"
     },
     "symfony/dependency-injection": {
+        "version": "v4.4.7"
+    },
+    "symfony/doctrine-bridge": {
         "version": "v4.4.7"
     },
     "symfony/dotenv": {
@@ -225,6 +278,9 @@
             "config/packages/test/monolog.yaml"
         ]
     },
+    "symfony/options-resolver": {
+        "version": "v4.4.7"
+    },
     "symfony/polyfill-intl-idn": {
         "version": "v1.15.0"
     },
@@ -265,6 +321,9 @@
     },
     "symfony/yaml": {
         "version": "v4.4.7"
+    },
+    "webimpress/safe-writer": {
+        "version": "2.0.1"
     },
     "willdurand/jsonp-callback-validator": {
         "version": "v1.1.0"
