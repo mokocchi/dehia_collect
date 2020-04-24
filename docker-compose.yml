@@ -2,16 +2,22 @@ version: '3.3'
 services:
   collect.mongo:  
     container_name: collect.mongo
-    image: mongo:latest
+    image: mongo:3.5
     restart: on-failure
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+      MONGO_USER: ${MONGO_USER}
+      MONGO_PASSWORD: ${MONGO_PASSWORD}
+      MONGO_DB: ${MONGO_DB}
     networks: 
       dehia:
       backend:
         aliases:
           - collect.mongo
+    command: mongod --auth --bind_ip 0.0.0.0
+    volumes:
+      - ./docker/mongo/init.sh:/docker-entrypoint-initdb.d/init-mongo.sh
 
   collect.php:
     container_name: collect.php
@@ -40,11 +46,17 @@ services:
         aliases:
           - collect.nginx
 
-  collect.adminer:
-    container_name: collect.adminer
-    image: adminer
+  collect.mongo-express:
+    container_name: collect.mongo-express
+    image: mongo-express
     restart: on-failure
-    networks: 
+    environment: 
+      ME_CONFIG_MONGODB_SERVER: collect.mongo
+      ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+      ME_CONFIG_BASICAUTH_USERNAME: ${ME_CONFIG_BASICAUTH_USERNAME}
+      ME_CONFIG_BASICAUTH_PASSWORD: ${ME_CONFIG_BASICAUTH_PASSWORD}
+    networks:
       - backend
 
 networks:
