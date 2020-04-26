@@ -4,6 +4,7 @@ namespace App\Controller\v1;
 
 use App\Api\ApiProblem;
 use App\Api\ApiProblemException;
+use App\Document\Activity;
 use App\Document\Entry;
 use Doctrine\ODM\MongoDB\DocumentManager;
 use Exception;
@@ -54,7 +55,15 @@ class ResultsController extends AbstractFOSRestController
         }
     }
 
-    private function getActivityColumns($code) {
+    private function getActivityColumns($code)
+    {
+        if($activity = $this->dm->getRepository(Activity::class)->findBy(["code" => $code])){
+            return $activity;
+        }
+
+        $activity = new Activity();
+        $activity->setCode($code);
+
         $client = new \GuzzleHttp\Client(
             [
                 'base_uri' => $_ENV["DEFINE_BASE_URL"]
@@ -62,7 +71,15 @@ class ResultsController extends AbstractFOSRestController
         );
         try {
             $response = $client->get(sprintf("/api/v1.0/public/actividades/%s/columns", $code));
-            return json_decode((string) $response->getBody(), true)["results"];
+            $data = json_decode((string) $response->getBody(), true);
+
+            foreach ($data["results"] as $taskCode) {
+                $activity->addTask($taskCode);
+            }
+
+            $this->dm->persist($activity);
+            $this->dm->flush();
+            return $activity;
         } catch (Exception $e) {
             if ($e instanceof RequestException) {
                 $response = $e->getResponse();
@@ -80,7 +97,7 @@ class ResultsController extends AbstractFOSRestController
                     throw new ApiProblemException(
                         new ApiProblem(
                             Response::HTTP_INTERNAL_SERVER_ERROR,
-                            "Ocurrió un error al buscar la actividad",
+                            "Ocurrió un error al buscar la activity",
                             "Ocurrió un error"
                         )
                     );
@@ -98,38 +115,71 @@ class ResultsController extends AbstractFOSRestController
         }
     }
 
+    private function getEntry($code, $responses, $columns)
+    {
+        $entry = new Entry();
+        $entry->setCode($code);
+        foreach ($responses as $response) {
+            $this->checkRequiredParameters(["code", "result"], $response);
+            $taskCode = $response["code"];
+            $this->verifyCode($taskCode);
+            if (array_search($taskCode, $columns) !== false) {
+                $resp = [$taskCode => $response["result"]];
+                $entry->addResponse($resp);
+            }
+        }
+        return $entry;
+    }
+
+    private function verifyCode($code)
+    {
+        if ((strlen($code) !== 64)|| (preg_match("/[0-9a-z]/", $code) !== 1)) {
+            throw new ApiProblemException(
+                new ApiProblem(
+                    Response::HTTP_BAD_REQUEST,
+                    "Formato de código erróneo",
+                    "Ocurrió un error"
+                )
+            );
+        }
+    }
+
     /**
      * Store results
      * @Rest\Post(name="post_results")
      * 
      * @return Response
      */
-    public function getResultsAction(Request $request = null)
+    public function postResultsAction(Request $request = null)
     {
         $data = $this->getJsonData($request);
         $this->checkRequiredParameters(["code", "responses"], $data);
         $code = $data["code"];
-        $code = strip_tags(stripslashes($code));
+        
+        $this->verifyCode($code);
+        
         $responses = $data["responses"];
 
-        $columns = $this->getActivityColumns($code);
+        $tasks = $this->getActivityColumns($code)->getTasks();
 
-        $entry = new Entry();
-        $entry->setCode($code);
-        
-        foreach ($responses as $response) {
-            $this->checkRequiredParameters(["code", "response"], $response);
-            $taskCode = $response["code"];
-            if (array_search($taskCode, $columns) !== false) {
-                $resp = [ $taskCode => $response["response"]];
-                $entry->addResponse($resp);
-            }
-        }        
-        
-        
+        $entry = $this->getEntry($code, $responses, $tasks);
+
         $this->dm->persist($entry);
         $this->dm->flush();
 
-        return $this->handleView($this->view(["data" => $entry]));
+        return $this->handleView($this->view($entry));
+    }
+
+    /**
+     * Get results for an activity
+     * @Rest\Get("/{code}", name="get_results")
+     * 
+     * @return Response
+     */
+    public function getResultsForActivity($code)
+    {
+        $this->verifyCode($code);
+        $entries = $this->dm->getRepository(Entry::class)->findBy(["code" => $code]);
+        return $this->handleView($this->view(["results" => $entries]));
     }
 }
