@@ -6,6 +6,7 @@ use App\Api\ApiProblem;
 use App\Api\ApiProblemException;
 use App\Document\Activity;
 use App\Document\Entry;
+use App\Document\Type;
 use Doctrine\ODM\MongoDB\DocumentManager;
 use Exception;
 use FOS\RestBundle\Controller\AbstractFOSRestController;
@@ -18,7 +19,7 @@ use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * @Route("/results")
+ * @Route("/entries")
  */
 class ResultsController extends AbstractFOSRestController
 {
@@ -57,7 +58,7 @@ class ResultsController extends AbstractFOSRestController
 
     private function getActivityColumns($code)
     {
-        if($activity = $this->dm->getRepository(Activity::class)->findBy(["code" => $code])){
+        if ($activity = $this->dm->getRepository(Activity::class)->findOneBy(["code" => $code])) {
             return $activity;
         }
 
@@ -115,16 +116,82 @@ class ResultsController extends AbstractFOSRestController
         }
     }
 
-    private function getEntry($code, $responses, $columns)
+    private function filterResult($result, $type)
+    {
+        switch ($type) {
+            case Type::SIMPLE:
+                if (($result === "true")) {
+                    return $result;
+                } else {
+                    return null;
+                }
+            case Type::TEXT_INPUT:
+            case Type::AUDIO_INPUT:
+                if (!is_array($result)) {
+                    return $result;
+                } else {
+                    return null;
+                }
+            case Type::NUMBER_INPUT:
+                if (!is_array($result) && ($result == "0" || (intval($result) != 0))) {
+                    return $result;
+                } else {
+                    return null;
+                }
+            case Type::CAMERA_INPUT:
+                if (is_array($result)) {
+                    return $result;
+                } else {
+                    return null;
+                }
+            case Type::SELECT:
+                if (!is_array($result)) {
+                    return $result;
+                } else {
+                    return null;
+                }
+            case Type::MULTIPLE:
+            case Type::COLLECT:
+            case Type::DEPOSIT:
+            case Type::COUNTERS:
+                if (is_array($result)) {
+                    foreach ($result as $elem) {
+                        if (is_array($elem)) {
+                            return null;
+                        }
+                    }
+                    return $result;
+                } else {
+                    return null;
+                }
+            case Type::GPS_INPUT:
+                if (is_array($result) && array_key_exists("type", $result) && array_key_exists("data", $result)) {
+                    return ["type" => $result["type"], "data" => $result["data"]];
+                } else {
+                    return null;
+                }
+            default:
+                break;
+        }
+    }
+
+    private function getEntry($code, $responses, $tasks)
     {
         $entry = new Entry();
         $entry->setCode($code);
+        $columns = array_map(function ($elem) {
+            return $elem["code"];
+        }, $tasks);
         foreach ($responses as $response) {
             $this->checkRequiredParameters(["code", "result"], $response);
             $taskCode = $response["code"];
             $this->verifyCode($taskCode);
-            if (array_search($taskCode, $columns) !== false) {
+            if (($index = array_search($taskCode, $columns)) !== false) {
+                //$this->filterResult($response["result"], $tasks[$index]["type"]);
                 $resp = [$taskCode => $response["result"]];
+                if ($resp === null) {
+                    continue;
+                }
                 $entry->addResponse($resp);
             }
         }
@@ -133,7 +200,7 @@ class ResultsController extends AbstractFOSRestController
 
     private function verifyCode($code)
     {
-        if ((strlen($code) !== 64)|| (preg_match("/[0-9a-z]/", $code) !== 1)) {
+        if ((strlen($code) !== 64) || (preg_match("/[0-9a-z]/", $code) !== 1)) {
             throw new ApiProblemException(
                 new ApiProblem(
                     Response::HTTP_BAD_REQUEST,
@@ -146,18 +213,18 @@ class ResultsController extends AbstractFOSRestController
 
     /**
      * Store results
-     * @Rest\Post(name="post_results")
+     * @Rest\Post(name="post_entries")
      * 
      * @return Response
      */
-    public function postResultsAction(Request $request = null)
+    public function postEntryAction(Request $request = null)
     {
         $data = $this->getJsonData($request);
         $this->checkRequiredParameters(["code", "responses"], $data);
         $code = $data["code"];
-        
+
         $this->verifyCode($code);
-        
+
         $responses = $data["responses"];
 
         $tasks = $this->getActivityColumns($code)->getTasks();

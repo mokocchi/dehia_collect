@@ -5,6 +5,7 @@ namespace App\Controller\v1;
 use App\Api\ApiProblem;
 use App\Api\ApiProblemException;
 use App\Document\Activity;
+use App\Document\Type;
 use Doctrine\ODM\MongoDB\DocumentManager;
 use FOS\RestBundle\Controller\AbstractFOSRestController;
 use Symfony\Component\HttpFoundation\Request;
@@ -67,24 +68,36 @@ class ActivitiesController extends AbstractFOSRestController
 
     /**
      * Store activity tasks codes
-     * @Rest\Put("/{code}", name="put_activity")
+     * @Rest\Post(name="put_activity")
      * 
      * @return Response
      */
-    public function putActivityAction(Request $request = null, $code)
+    public function postActivityAction(Request $request = null)
     {
         $data = $this->getJsonData($request);
         $this->checkRequiredParameters(["tasks"], $data);
-        $this->verifyCode($code);
+        $this->verifyCode($data["code"]);
+        $code = $data["code"];
 
         $activity = $this->dm->getRepository(Activity::class)->findBy(["code" => $code]);
 
         $activity = $activity ?: new Activity();
         $activity->setCode($code);
 
-        foreach ($data["tasks"] as $taskCode) {
-            $this->verifyCode($taskCode);
-            $activity->addTask($taskCode);
+        foreach ($data["tasks"] as $taskArray) {
+            $this->verifyCode($taskArray["code"]);
+            $task["code"] = $taskArray["code"];
+            if (!in_array($taskArray["type"], Type::TYPES)) {
+                throw new ApiProblemException(
+                    new ApiProblem(
+                        Response::HTTP_BAD_REQUEST,
+                        "Tipo desconocido",
+                        "Tipo desconocido"
+                    )
+                );
+            }
+            $task["type"] = $taskArray["type"];
+            $activity->addTask($task);
         }
 
         $this->dm->persist($activity);

@@ -49,7 +49,7 @@ class Activity {
         return $this->tasks;
     }
 
-    public function addTask(string $task): self
+    public function addTask(array $task): self
     {
         $this->tasks[] = $task;
         return $this;
