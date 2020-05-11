@@ -1,0 +1,21 @@
+security:
+    providers:
+        api_user_provider:
+            mongodb:
+                class: App\Document\Autor
+                property: email
+
+    firewalls:
+        public_api:
+            pattern: ^/api/v1.0/public
+            stateless: true
+            anonymous: true
+            
+        api:
+            pattern: ^/api/v1.0
+            stateless: true
+            anonymous: false
+            guard:
+                authenticators:
+                    - App\Security\AuthServiceAuthenticator
+

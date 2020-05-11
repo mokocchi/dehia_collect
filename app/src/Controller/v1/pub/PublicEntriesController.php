@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Controller\v1;
+namespace App\Controller\v1\pub;
 
 use App\Api\ApiProblem;
 use App\Api\ApiProblemException;
@@ -21,7 +21,7 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * @Route("/entries")
  */
-class ResultsController extends AbstractFOSRestController
+class PublicEntriesController extends AbstractFOSRestController
 {
     private $logger;
     private $serializer;
@@ -74,8 +74,27 @@ class ResultsController extends AbstractFOSRestController
             $response = $client->get(sprintf("/api/v1.0/public/actividades/%s/columns", $code));
             $data = json_decode((string) $response->getBody(), true);
 
-            foreach ($data["results"] as $taskCode) {
-                $activity->addTask($taskCode);
+            if(!array_key_exists("results", $data) || !is_array($data["results"])) {
+                throw new ApiProblemException(
+                    new ApiProblem(
+                        Response::HTTP_INTERNAL_SERVER_ERROR,
+                        "No se pudo obtener la definición de la tarea",
+                        "No se pudo guardar la respuesta"
+                    )
+                );
+            }
+            foreach ($data["results"] as $taskArray) {
+                if (array_key_exists("code", $taskArray) && array_key_exists("type", $taskArray)) {
+                    $activity->addTask(["code" => $taskArray["code"], "type" => $taskArray["type"]]);
+                } else {
+                    throw new ApiProblemException(
+                        new ApiProblem(
+                            Response::HTTP_INTERNAL_SERVER_ERROR,
+                            "No se pudo obtener la definición de la tarea",
+                            "No se pudo guardar la respuesta"
+                        )
+                    );
+                }
             }
 
             $this->dm->persist($activity);
@@ -187,7 +206,7 @@ class ResultsController extends AbstractFOSRestController
             $taskCode = $response["code"];
             $this->verifyCode($taskCode);
             if (($index = array_search($taskCode, $columns)) !== false) {
-                //$this->filterResult($response["result"], $tasks[$index]["type"]);
+                $this->filterResult($response["result"], $tasks[$index]["type"]);
                 $resp = [$taskCode => $response["result"]];
                 if ($resp === null) {
                     continue;
@@ -235,18 +254,5 @@ class ResultsController extends AbstractFOSRestController
         $this->dm->flush();
 
         return $this->handleView($this->view($entry));
-    }
-
-    /**
-     * Get results for an activity
-     * @Rest\Get("/{code}", name="get_results")
-     * 
-     * @return Response
-     */
-    public function getResultsForActivity($code)
-    {
-        $this->verifyCode($code);
-        $entries = $this->dm->getRepository(Entry::class)->findBy(["code" => $code]);
-        return $this->handleView($this->view(["results" => $entries]));
     }
 }
