@@ -4,6 +4,7 @@ namespace App\Controller\v1;
 
 use App\Api\ApiProblem;
 use App\Api\ApiProblemException;
+use App\Document\Activity;
 use App\Document\Entry;
 use Doctrine\ODM\MongoDB\DocumentManager;
 use FOS\RestBundle\Controller\AbstractFOSRestController;
@@ -51,6 +52,17 @@ class EntriesController extends AbstractFOSRestController
     public function getResultsForActivity($code)
     {
         $this->verifyCode($code);
+        $activity = $this->dm->getRepository(Activity::class)->findOneBy(["code" => $code]);
+        //TODO: make voter
+        if ($this->getUser()->getGoogleId() !== $activity->getAuthor()) {
+            throw new ApiProblemException(
+                new ApiProblem(
+                    Response::HTTP_FORBIDDEN,
+                    "La actividad no pertenece al usuario",
+                    "La actividad no pertenece al usuario"
+                )
+            );
+        }
         $entries = $this->dm->getRepository(Entry::class)->findBy(["code" => $code]);
         return $this->handleView($this->view(["results" => $entries]));
     }

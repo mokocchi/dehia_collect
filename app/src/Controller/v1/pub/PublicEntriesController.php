@@ -59,6 +59,15 @@ class PublicEntriesController extends AbstractFOSRestController
     private function getActivityColumns($code)
     {
         if ($activity = $this->dm->getRepository(Activity::class)->findOneBy(["code" => $code])) {
+            if ($activity->getClosed()) {
+                throw new ApiProblemException(
+                    new ApiProblem(
+                        Response::HTTP_FORBIDDEN,
+                        "La actividad está cerrada",
+                        "La actividad está cerrada"
+                    )
+                );
+            }
             return $activity;
         }
 
@@ -74,15 +83,19 @@ class PublicEntriesController extends AbstractFOSRestController
             $response = $client->get(sprintf("/api/v1.0/public/actividades/%s/columns", $code));
             $data = json_decode((string) $response->getBody(), true);
 
-            if(!array_key_exists("results", $data) || !is_array($data["results"])) {
+            if (
+                !array_key_exists("results", $data) || !is_array($data["results"])
+                || !array_key_exists("author", $data) || is_null($data["author"])
+            ) {
                 throw new ApiProblemException(
                     new ApiProblem(
                         Response::HTTP_INTERNAL_SERVER_ERROR,
-                        "No se pudo obtener la definición de la tarea",
+                        "No se pudo obtener la definición de la actividad",
                         "No se pudo guardar la respuesta"
                     )
                 );
             }
+            $activity->setAuthor($data["author"]);
             foreach ($data["results"] as $taskArray) {
                 if (array_key_exists("code", $taskArray) && array_key_exists("type", $taskArray)) {
                     $activity->addTask(["code" => $taskArray["code"], "type" => $taskArray["type"]]);

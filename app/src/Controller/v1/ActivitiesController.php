@@ -68,23 +68,35 @@ class ActivitiesController extends AbstractFOSRestController
 
     /**
      * Store activity tasks codes
-     * @Rest\Post(name="put_activity")
+     * @Rest\Post(name="post_activity")
      * 
      * @return Response
      */
     public function postActivityAction(Request $request = null)
     {
         $data = $this->getJsonData($request);
-        $this->checkRequiredParameters(["tasks"], $data);
+        $this->checkRequiredParameters(["tasks", "code", "author"], $data);
         $this->verifyCode($data["code"]);
         $code = $data["code"];
 
         $activity = $this->dm->getRepository(Activity::class)->findBy(["code" => $code]);
 
-        $activity = $activity ?: new Activity();
+        if ($activity) {
+            throw new ApiProblemException(
+                new ApiProblem(
+                    Response::HTTP_BAD_REQUEST,
+                    "La actividad ya existe",
+                    "La actividad ya existe"
+                )
+            );
+        }
+
+        $activity = new Activity();
         $activity->setCode($code);
+        $activity->setAuthor($data["author"]);
 
         foreach ($data["tasks"] as $taskArray) {
+            $this->checkRequiredParameters(["code", "type"], $taskArray);
             $this->verifyCode($taskArray["code"]);
             $task["code"] = $taskArray["code"];
             if (!in_array($taskArray["type"], Type::TYPES)) {
@@ -99,6 +111,49 @@ class ActivitiesController extends AbstractFOSRestController
             $task["type"] = $taskArray["type"];
             $activity->addTask($task);
         }
+
+        $this->dm->persist($activity);
+        $this->dm->flush();
+
+        return $this->handleView($this->view($activity));
+    }
+
+    /**
+     * Close an activity
+     * @Rest\Post("/closed", name="close_activity")
+     * 
+     * @return Response
+     */
+
+    public function closeActivity(Request $request)
+    {
+        $data = $this->getJsonData($request);
+        $this->checkRequiredParameters(["activity"], $data);
+        $this->verifyCode($data["activity"]);
+        $code = $data["activity"];
+        $activity = $this->dm->getRepository(Activity::class)->findOneBy(["code" => $code]);
+
+        if (is_null($activity)) {
+            throw new ApiProblemException(
+                new ApiProblem(
+                    Response::HTTP_NOT_FOUND,
+                    "No se encontró la actividad",
+                    "No se encontró la actividad"
+                )
+            );
+        }
+
+        if ($this->getUser()->getGoogleId() !== $activity->getAuthor()) {
+            throw new ApiProblemException(
+                new ApiProblem(
+                    Response::HTTP_FORBIDDEN,
+                    "La actividad no pertenece al usuario",
+                    "La actividad no pertenece al usuario"
+                )
+            );
+        }
+
+        $activity->setClosed(true);
 
         $this->dm->persist($activity);
         $this->dm->flush();
