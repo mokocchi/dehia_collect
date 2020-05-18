@@ -160,4 +160,47 @@ class ActivitiesController extends AbstractFOSRestController
 
         return $this->handleView($this->view($activity));
     }
+
+    /**
+     * Reopen an activity
+     * @Rest\Post("/open", name="reopen_activity")
+     * 
+     * @return Response
+     */
+
+    public function reopenActivity(Request $request)
+    {
+        $data = $this->getJsonData($request);
+        $this->checkRequiredParameters(["activity"], $data);
+        $this->verifyCode($data["activity"]);
+        $code = $data["activity"];
+        $activity = $this->dm->getRepository(Activity::class)->findOneBy(["code" => $code]);
+
+        if (is_null($activity)) {
+            throw new ApiProblemException(
+                new ApiProblem(
+                    Response::HTTP_NOT_FOUND,
+                    "No se encontró la actividad",
+                    "No se encontró la actividad"
+                )
+            );
+        }
+
+        if ($this->getUser()->getGoogleId() !== $activity->getAuthor()) {
+            throw new ApiProblemException(
+                new ApiProblem(
+                    Response::HTTP_FORBIDDEN,
+                    "La actividad no pertenece al usuario",
+                    "La actividad no pertenece al usuario"
+                )
+            );
+        }
+
+        $activity->setClosed(false);
+
+        $this->dm->persist($activity);
+        $this->dm->flush();
+
+        return $this->handleView($this->view($activity));
+    }
 }
