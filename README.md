@@ -56,5 +56,5 @@ Docker variablas go in the `.env` file. PHP variables go in the `app/.env.local`
 - [DEHIA Gateway](https://github.com/mokocchi/dehia_gateway)
 - [DEHIA Mobile App](https://github.com/mokocchi/prototipo-app-actividades)
 - [DEHIA Auth Service](https://github.com/mokocchi/dehia_auth)
-- [DEHIA Collect Service](https://github.com/mokocchi/dehia_collect)
+- [DEHIA Define Service](https://github.com/mokocchi/dehia_define)
 - [DEHIA Results Service](https://github.com/mokocchi/dehia_results)
