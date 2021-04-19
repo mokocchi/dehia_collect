@@ -24,10 +24,14 @@ services:
     build:
       context: .
       dockerfile: docker/php/Dockerfile
+    depends_on: 
+      - collect.mongo
+    environment: 
+        WAIT_HOSTS: collect.mongo:27017
+        WAIT_SLEEP_INTERVAL: 5
+        WAIT_BEFORE_HOSTS: 5
     restart: on-failure
     user: ${LOCAL_USER}
-    expose: 
-      - 9000
     networks: 
       dehia:
       backend:
@@ -48,8 +52,10 @@ services:
 
   collect.mongo-express:
     container_name: collect.mongo-express
-    image: mongo-express
+    image: mongo-express:0.54
     restart: on-failure
+    depends_on: 
+      - collect.mongo
     environment: 
       ME_CONFIG_MONGODB_SERVER: collect.mongo
       ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_INITDB_ROOT_USERNAME}

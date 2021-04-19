@@ -1,28 +1,43 @@
-FROM php:7.4-fpm
+FROM php:7.4-fpm-alpine
 
-RUN pecl install apcu 
+FROM php:7.4-fpm-alpine
 
-RUN apt-get update && \
-apt-get install -y \
-libzip-dev unzip libcurl4-openssl-dev pkg-config libssl-dev
-
-RUN pecl install mongodb
+RUN apk update && apk add libzip-dev
 
 RUN docker-php-ext-install zip
-RUN docker-php-ext-enable apcu
 
-RUN docker-php-ext-enable mongodb
+RUN apk add --no-cache \
+    $PHPIZE_DEPS \
+    && pecl install apcu \
+    && docker-php-ext-enable apcu
+
+RUN apk update && apk add curl-dev openssl-dev
+
+RUN pecl install mongodb && docker-php-ext-enable mongodb
 
 RUN php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');" \
-    && php -r "if (hash_file('SHA384', 'composer-setup.php') === 'e0012edf3e80b6978849f5eff0d4b4e4c79ff1609dd1e613307e16318854d24ae64f26d17af3ef0bf7cfb710ca74755a') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;" \
     && php composer-setup.php --filename=composer \
     && php -r "unlink('composer-setup.php');" \
     && mv composer /usr/local/bin/composer
 
 WORKDIR /usr/src/app
 
-COPY . /usr/src/app
+COPY ./app /usr/src/app
 
-RUN PATH=$PATH:/usr/src/apps/vendor/bin:bin
+RUN chown -R 1000 /usr/src/app
+RUN chgrp -R 1000 /usr/src/app
 
 RUN mkdir /.composer && chown 1000 /.composer && chgrp 1000 /.composer
+
+ADD https://github.com/ufoscout/docker-compose-wait/releases/download/2.8.0/wait /tmp/wait
+RUN chmod +x /tmp/wait
+RUN chown 1000 /tmp/wait
+RUN chgrp 1000 /tmp/wait
+
+USER 1000:1000
+
+RUN ["composer", "install"]
+
+RUN PATH=$PATH:/usr/src/app/vendor/bin:bin
+
+CMD ["/bin/sh", "-c", "/tmp/wait && bin/console doctrine:mongodb:schema:create; php-fpm"]

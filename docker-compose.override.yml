@@ -2,7 +2,7 @@ version: '3.3'
 services:
  collect.php:
    volumes:
-     - './app:/usr/src/app'
+     - './app/src:/usr/src/app/src'
 
  collect.nginx:
    volumes:
