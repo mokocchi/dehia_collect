@@ -66,7 +66,7 @@ class AuthServiceAuthenticator extends AbstractGuardAuthenticator
             } else {
                 //JWT only flow
                 $oauth = false;
-                $response = $this->client->get("/api/v1.0/users/me", ["headers" => ["Authorization" => $credentials[0]]]);
+                $response = $this->client->get("/api/v1.0/me", ["headers" => ["Authorization" => $credentials[0]]]);
             }
             $data = json_decode((string) $response->getBody(), true);
         } catch (Exception $e) {
