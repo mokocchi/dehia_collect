@@ -109,6 +109,9 @@ class ActivitiesController extends AbstractFOSRestController
                 );
             }
             $task["type"] = $taskArray["type"];
+            if(array_key_exists("extra", $taskArray)) {
+                $task["extra"] = $taskArray["extra"];
+            }
             $activity->addTask($task);
         }
 
