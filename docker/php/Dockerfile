@@ -29,7 +29,7 @@ RUN chgrp -R 1000 /usr/src/app
 
 RUN mkdir /.composer && chown 1000 /.composer && chgrp 1000 /.composer
 
-ADD https://github.com/ufoscout/docker-compose-wait/releases/download/2.8.0/wait /tmp/wait
+ADD https://github.com/ufoscout/docker-compose-wait/releases/download/2.9.0/wait /tmp/wait
 RUN chmod +x /tmp/wait
 RUN chown 1000 /tmp/wait
 RUN chgrp 1000 /tmp/wait
