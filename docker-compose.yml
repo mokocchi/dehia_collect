@@ -19,11 +19,12 @@ services:
     volumes:
       - ./docker/mongo/init.sh:/docker-entrypoint-initdb.d/init-mongo.sh
 
-  collect.php:
-    container_name: collect.php
-    build:
-      context: .
-      dockerfile: docker/php/Dockerfile
+  collect.app:
+    container_name: collect.app
+    image: mokocchi/dehia-collect
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
     depends_on: 
       - ${DATABASE_HOST}
     environment: 
@@ -39,39 +40,11 @@ services:
       WAIT_BEFORE_HOSTS: 10
       WAIT_TIMEOUT: 350
     restart: on-failure
-    user: ${LOCAL_USER}
     networks: 
-      dehia:
-      backend:
-        aliases:
-          - collect.php
-
-  collect.nginx:
-    container_name: collect.nginx
-    image: nginx:1.17-alpine
-    restart: on-failure
-    depends_on:
-      - collect.php
-    networks:
       backend:
       dehia:
         aliases:
-          - collect.nginx
-
-  collect.mongo-express:
-    container_name: collect.mongo-express
-    image: mongo-express:0.54
-    restart: on-failure
-    depends_on: 
-      - collect.mongo
-    environment: 
-      ME_CONFIG_MONGODB_SERVER: collect.mongo
-      ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_INITDB_ROOT_USERNAME}
-      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
-      ME_CONFIG_BASICAUTH_USERNAME: ${ME_CONFIG_BASICAUTH_USERNAME}
-      ME_CONFIG_BASICAUTH_PASSWORD: ${ME_CONFIG_BASICAUTH_PASSWORD}
-    networks:
-      - backend
+          - collect.app
 
 networks:
   dehia:
