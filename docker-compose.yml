@@ -25,12 +25,19 @@ services:
       context: .
       dockerfile: docker/php/Dockerfile
     depends_on: 
-      - collect.mongo
+      - ${DATABASE_HOST}
     environment: 
-        WAIT_HOSTS: collect.mongo:27017
-        WAIT_SLEEP_INTERVAL: 5
-        WAIT_BEFORE_HOSTS: 5
-        WAIT_TIMEOUT: 350
+      MONGO_USER: ${MONGO_USER}
+      MONGO_PASSWORD: ${MONGO_PASSWORD}
+      MONGO_DB: ${MONGO_DB}
+      DATABASE_HOST: ${DATABASE_HOST}
+      SITE_BASE_URL: ${SITE_BASE_URL}
+      DEFINE_BASE_URL: ${DEFINE_BASE_URL}
+      AUTH_BASE_URL: $AUTH_BASE_URL
+      WAIT_HOSTS: collect.mongo:27017
+      WAIT_SLEEP_INTERVAL: 10
+      WAIT_BEFORE_HOSTS: 10
+      WAIT_TIMEOUT: 350
     restart: on-failure
     user: ${LOCAL_USER}
     networks: 
@@ -41,7 +48,7 @@ services:
 
   collect.nginx:
     container_name: collect.nginx
-    image: nginx:1.15.3-alpine
+    image: nginx:1.17-alpine
     restart: on-failure
     depends_on:
       - collect.php
