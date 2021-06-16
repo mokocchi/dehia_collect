@@ -1,6 +1,6 @@
 FROM php:7.4-fpm-alpine
 
-RUN apk update && apk add libzip-dev
+RUN apk update && apk add libzip-dev gettext
 
 RUN docker-php-ext-install zip
 
@@ -28,12 +28,6 @@ RUN mkdir /.composer && chown 1000 /.composer && chgrp 1000 /.composer
 ADD https://github.com/ufoscout/docker-compose-wait/releases/download/2.9.0/wait /tmp/wait
 RUN chmod +x /tmp/wait &&\
     chown 1000:1000 /tmp/wait
-
-RUN apk --no-cache add curl
-RUN curl -L https://github.com/a8m/envsubst/releases/download/v1.1.0/envsubst-`uname -s`-`uname -m` -o /tmp/envsubst && \
-    chmod u+x /tmp/envsubst && \
-    chown 1000:1000 /tmp/envsubst &&\
-    mv /tmp/envsubst /usr/local/bin
 
 USER 1000:1000
 
